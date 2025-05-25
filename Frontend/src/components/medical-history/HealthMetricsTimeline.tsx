@@ -45,17 +45,16 @@ const HealthMetricsTimeline: React.FC = () => {
               date: new Date(d.date).toISOString().split('T')[0],
               value: d.value,
               type: d.type
-            })) || [] // Ensure data is never undefined
+            }))
         }));
 
+        console.log('Updated metrics:', updatedMetrics); // Debug log
         setMetrics(updatedMetrics);
       }
     } catch (error: any) {
       console.error('Error fetching health metrics:', error);
       const errorMessage = error.response?.data?.message || 'Failed to load health metrics';
       toast.error(errorMessage);
-      // Set empty data array on error instead of using default metrics
-      setMetrics(healthMetrics.map(metric => ({ ...metric, data: [] })));
     } finally {
       setLoading(false);
     }
@@ -80,55 +79,59 @@ const HealthMetricsTimeline: React.FC = () => {
   return (
     <div className="flex flex-col gap-8">
       <Tabs defaultValue={activeMetric} className="w-full" onValueChange={setActiveMetric}>
-        {/* Header with Add Reading Button */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">Health Metrics</h2>
-          <AddHealthReading onReadingAdded={handleReadingAdded} />
+        {/* Section 1: Options */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8 max-w-7xl mx-auto min-h-[200px]">
+  <div className="flex justify-between items-center mb-6">
+    <h2 className="text-2xl font-semibold text-gray-900">Health Metrics</h2>
+    <AddHealthReading onReadingAdded={handleReadingAdded} />
+  </div>
+
+  {/* Background added here */}
+  <div className=" rounded p-2">
+    {/* Remove background from here */}
+<TabsList className="grid grid-cols-6 gap-2 w-full">
+  {metrics.map((metric) => (
+    <TabsTrigger
+      key={metric.id}
+      value={metric.id}
+      className="bg-transparent data-[state=active]:bg-indigo-100 data-[state=active]:text-indigo-700 whitespace-nowrap text-sm"
+    >
+      {metric.name}
+    </TabsTrigger>
+  ))}
+</TabsList>
+
+  </div>
+</div>
+
+
+        {/* Section 2: Graph */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          {metrics.map((metric) => (
+            <TabsContent key={metric.id} value={metric.id}>
+              <div className="h-[400px] w-full">
+                <HealthTimeline
+                  data={metric.data}
+                  metricType={metric.name}
+                  unit={metric.unit}
+                  normalRange={metric.normalRange}
+                />
+              </div>
+            </TabsContent>
+          ))}
         </div>
 
-        {/* Metric Selection Tabs */}
-        <TabsList className="grid grid-cols-6 gap-2 w-full mb-6">
+        {/* Section 3: Dashboard */}
+        <div className="bg-white rounded-lg shadow p-6">
           {metrics.map((metric) => (
-            <TabsTrigger
-              key={metric.id}
-              value={metric.id}
-              className="bg-transparent data-[state=active]:bg-indigo-100 data-[state=active]:text-indigo-700 whitespace-nowrap text-sm"
-            >
-              {metric.name}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {/* Metric Content */}
-        {metrics.map((metric) => (
-          <TabsContent key={metric.id} value={metric.id} className="space-y-6">
-            {/* Current Status Dashboard */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <TabsContent key={metric.id} value={metric.id}>
               <HealthDashboard selectedMetric={metric} />
-            </div>
-
-            {/* Graph */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="h-[400px] w-full">
-                {metric.data.length > 0 ? (
-                  <HealthTimeline
-                    data={metric.data}
-                    metricType={metric.name}
-                    unit={metric.unit}
-                    normalRange={metric.normalRange}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500">No data available. Add your first reading!</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-        ))}
+            </TabsContent>
+          ))}
+        </div>
       </Tabs>
     </div>
   );
 };
 
-export default HealthMetricsTimeline;
+export default HealthMetricsTimeline; 

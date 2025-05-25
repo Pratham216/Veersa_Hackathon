@@ -62,22 +62,22 @@ const medicalRecordSchema = new mongoose.Schema({
   lifestyle: {
     smoking: {
       type: String,
-      enum: ['never', 'former', 'current'],
+      enum: ['never', 'former', 'current', 'occasional', ''],
       default: ''
     },
     alcohol: {
       type: String,
-      enum: ['none', 'occasional', 'moderate', 'heavy'],
+      enum: ['none', 'occasional', 'moderate', 'heavy', ''],
       default: ''
     },
     exercise: {
       type: String,
-      enum: ['sedentary', 'light', 'moderate', 'active'],
+      enum: ['sedentary', 'light', 'moderate', 'active', ''],
       default: ''
     },
     diet: {
       type: String,
-      enum: ['regular', 'vegetarian', 'vegan', 'keto', 'paleo', 'other'],
+      enum: ['regular', 'vegetarian', 'vegan', 'keto', 'paleo', 'other', ''],
       default: ''
     }
   },
@@ -121,4 +121,4 @@ medicalRecordSchema.pre('save', function(next) {
 });
 
 const MedicalRecord = mongoose.model('MedicalRecord', medicalRecordSchema);
-export default MedicalRecord; 
+export default MedicalRecord;

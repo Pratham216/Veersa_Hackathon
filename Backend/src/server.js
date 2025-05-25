@@ -6,7 +6,7 @@ import authRoutes from './routes/auth.js';
 // import paymentRoutes from './routes/payment.js';
 import medicalRoutes from './routes/medicalRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
-import geoapifyRoutes from './routes/geoapifyRoute.js';
+import geoapifyRoutes from './routes/geoapifyRoutes.js';
 import doctorRoutes from './routes/doctorRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import healthMetricsRoutes from './routes/medical/healthMetrics.js';
@@ -56,7 +56,6 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/arogya-vr
 app.use('/api/auth', authRoutes);
 // app.use('/api/payment', paymentRoutes);
 app.use('/api/medical', medicalRoutes);
-// Add this line with your other app.use statements
 app.use('/api/geoapify', geoapifyRoutes);
 app.use('/api', aiRoutes);
 app.use('/api/doctors', doctorRoutes);

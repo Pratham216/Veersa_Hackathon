@@ -40,10 +40,10 @@ router.post('/', auth, async (req, res) => {
     if (req.body.lifestyle) {
       const { smoking, alcohol, exercise, diet } = req.body.lifestyle;
       
-      if (smoking && !['never', 'occasional', 'regular', 'former', ''].includes(smoking)) {
+      if (smoking && !['never', 'occasional', 'current', 'former', ''].includes(smoking)) {
         return res.status(400).json({
           message: 'Invalid smoking status',
-          validValues: ['never', 'occasional', 'regular', 'former', '']
+          validValues: ['never', 'occasional', 'current', 'former', '']
         });
       }
 
@@ -105,4 +105,4 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

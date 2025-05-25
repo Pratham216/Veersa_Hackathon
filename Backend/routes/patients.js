@@ -84,4 +84,15 @@ router.get('/prescriptions', auth, async (req, res) => {
   }
 });
 
-module.exports = router; 
+// Get all patients (users with userType: "patient")
+router.get('/', auth, async (req, res) => {
+  try {
+    const patients = await User.find({ userType: "patient" });
+    res.json(patients);
+  } catch (error) {
+    console.error('Get all patients error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+module.exports = router;

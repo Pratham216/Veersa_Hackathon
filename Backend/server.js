@@ -11,6 +11,8 @@ const appointmentRoutes = require('./routes/appointments');
 const healthMetricsRoutes = require('./routes/medical/healthMetrics');
 const medicalRecordsRoutes = require('./routes/medical/records');
 const medicalReportsRoutes = require('./routes/medical/reports');
+const geolocationRoutes = require('./routes/geolocation');
+const geolocationErrorHandler = require('./middleware/geolocationErrorHandler');
 
 dotenv.config();
 
@@ -113,15 +115,22 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// Routes
+// Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/doctors', doctorRoutes);
-app.use('/api/patient', patientRoutes);
+app.use('/api/patients', patientRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/medical/health-metrics', healthMetricsRoutes);
+app.use('/api/medical/health-metric', healthMetricsRoutes); // Optional: support singular as well
 app.use('/api/medical/records', medicalRecordsRoutes);
-app.use('/api/medical/reports', medicalReportsRoutes);
+app.use('/api/medical/reports', medicalReportsRoutes); // <-- FIXED: mount at /api/medical/reports
+app.use('/api/geoapify', geolocationRoutes);
+
+// Remove duplicate or unnecessary recordsRouter mounting if present
+
+// Add error handler after routes
+app.use(geolocationErrorHandler);
 
 // 404 handler
 app.use((req, res) => {
@@ -176,4 +185,4 @@ app.listen(PORT, () => {
     mongoDbUri: (process.env.MONGODB_URI || 'mongodb://localhost:27017/arogya-vritti').split('@')[1] || 'local',
     corsOrigins: corsOptions.origin
   });
-}); 
+});

@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/services/api';
+import { cn } from "@/lib/utils";
 
 interface Patient {
   _id: string;
@@ -54,12 +55,16 @@ interface Patient {
 }
 
 interface Appointment {
-  id: string;
+  _id: string;
   patientName: string;
   date: string;
   time: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   type: string;
+  reason: string;
+  symptoms?: string;
+  phone: string;
+  email: string;
 }
 
 interface MedicalReport {
@@ -124,7 +129,7 @@ const DoctorDashboard = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [reports, setReports] = useState<MedicalReport[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedPatient, setSelectedPatient] = useState<string>('');
   const [newReport, setNewReport] = useState({
     diagnosis: '',
@@ -149,15 +154,17 @@ const DoctorDashboard = () => {
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
 
   // Load doctor's data
   useEffect(() => {
     const loadDoctorData = async () => {
       try {
-        // Fetch patients
-        const response = await api.get('/doctor/patients');
-        if (response.data && response.data.patients) {
-          setPatients(response.data.patients);
+        // Fetch patients (correct endpoint)
+        const response = await api.get('/patients');
+        if (response.data) {
+          setPatients(response.data);
         } else {
           toast.error('Failed to load patients');
         }
@@ -254,6 +261,57 @@ const DoctorDashboard = () => {
 
     loadProfileData();
   }, []);
+
+  // Fetch doctor's appointments
+  useEffect(() => {
+    const fetchDoctorAppointments = async () => {
+      if (!user || !profileData) return;
+
+      setIsLoadingAppointments(true);
+      try {
+        // Get today's date at start of day
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Fetch all appointments
+        const response = await api.get('/appointments');
+        const allAppointments = response.data;
+
+        // Filter appointments for this doctor based on name and license number
+        const doctorAppointments = allAppointments.filter((apt: any) => 
+          apt.doctorName === profileData.name && 
+          apt.doctorLicenseNumber === profileData.licenseNumber
+        );
+
+        // Filter and sort upcoming appointments
+        const upcoming = doctorAppointments
+          .filter((apt: Appointment) => {
+            const aptDate = new Date(apt.date);
+            aptDate.setHours(0, 0, 0, 0);
+            return aptDate >= today && apt.status !== 'cancelled';
+          })
+          .sort((a: Appointment, b: Appointment) => {
+            // Sort by date first
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            if (dateA.getTime() !== dateB.getTime()) {
+              return dateA.getTime() - dateB.getTime();
+            }
+            // If same date, sort by time
+            return a.time.localeCompare(b.time);
+          });
+
+        setUpcomingAppointments(upcoming);
+      } catch (error) {
+        console.error('Error fetching appointments:', error);
+        toast.error("Failed to load appointments");
+      } finally {
+        setIsLoadingAppointments(false);
+      }
+    };
+
+    fetchDoctorAppointments();
+  }, [user, profileData]);
 
   const handleCreateReport = () => {
     if (!selectedPatient) {
@@ -481,6 +539,91 @@ const DoctorDashboard = () => {
     }
   };
 
+  // Function to check if a date is within the next 30 days
+  const isWithinNext30Days = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const thirtyDaysFromNow = new Date(today);
+    thirtyDaysFromNow.setDate(today.getDate() + 30);
+    
+    return date >= today && date <= thirtyDaysFromNow;
+  };
+
+  // Function to randomly generate availability status for demonstration
+  const getRandomAvailability = (date: Date) => {
+    if (!isWithinNext30Days(date)) {
+      return "default";
+    }
+    // Generate a random number between 0 and 2
+    const random = Math.floor(Math.random() * 3);
+    return random === 0 ? "available" : random === 1 ? "waiting" : "not-available";
+  };
+
+  // Custom calendar day render function
+  const renderCalendarDay = (day: Date) => {
+    const availability = getRandomAvailability(day);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // If it's a past date, return default styling
+    if (day < today) {
+      return (
+        <div className="h-9 w-9 p-0 font-normal rounded-full flex items-center justify-center text-gray-400">
+          {format(day, "d")}
+        </div>
+      );
+    }
+    
+    return (
+      <div
+        className={cn(
+          "h-9 w-9 p-0 font-normal rounded-full flex items-center justify-center",
+          {
+            "bg-green-100 text-green-900": availability === "available",
+            "bg-yellow-100 text-yellow-900": availability === "waiting",
+            "bg-red-100 text-red-900": availability === "not-available",
+            "": availability === "default"
+          }
+        )}
+      >
+        {format(day, "d")}
+      </div>
+    );
+  };
+
+  const handleManageAppointment = async (appointmentId: string, action: 'confirm' | 'complete' | 'cancel') => {
+    try {
+      // Convert action to the correct status type
+      const statusMap = {
+        'confirm': 'confirmed',
+        'complete': 'completed',
+        'cancel': 'cancelled'
+      } as const;
+      
+      const newStatus = statusMap[action];
+      await api.put(`/appointments/${appointmentId}/status`, { 
+        status: newStatus,
+        doctorName: profileData.name,
+        doctorLicenseNumber: profileData.licenseNumber
+      });
+      
+      // Update the appointment status locally
+      setUpcomingAppointments(prev => 
+        prev.map(apt => 
+          apt._id === appointmentId 
+            ? { ...apt, status: newStatus } 
+            : apt
+        )
+      );
+
+      toast.success(`Appointment ${action}ed successfully`);
+    } catch (error) {
+      console.error(`Error ${action}ing appointment:`, error);
+      toast.error(`Failed to ${action} appointment`);
+    }
+  };
+
   const navItems = [
     { path: "/doctor/profile", icon: User, label: "Profile" },
     { path: "/doctor/patients", icon: User, label: "Patients List" },
@@ -688,35 +831,29 @@ const DoctorDashboard = () => {
                         <TableHead>Phone</TableHead>
                         <TableHead>Last Visit</TableHead>
                         <TableHead>Next Appointment</TableHead>
-                        <TableHead>Actions</TableHead>
+                        {/* Removed Actions column */}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {patients.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-4">
+                          <TableCell colSpan={7} className="text-center py-4">
                             No patients found
                           </TableCell>
                         </TableRow>
                       ) : (
                         patients.map((patient) => (
                           <TableRow key={patient._id}>
-                            <TableCell>{patient.name}</TableCell>
-                            <TableCell>{patient.age}</TableCell>
-                            <TableCell>{patient.gender}</TableCell>
-                            <TableCell>{patient.email}</TableCell>
-                            <TableCell>{patient.phone}</TableCell>
-                            <TableCell>{patient.lastVisit}</TableCell>
-                            <TableCell>{patient.nextAppointment || 'Not Scheduled'}</TableCell>
+                            <TableCell>{patient.name || "NA"}</TableCell>
                             <TableCell>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleViewReport(patient._id)}
-                              >
-                                View Details
-                              </Button>
+                              {patient.age !== undefined && patient.age !== null ? patient.age : "NA"}
                             </TableCell>
+                            <TableCell>{patient.gender || "NA"}</TableCell>
+                            <TableCell>{patient.email || "NA"}</TableCell>
+                            <TableCell>{patient.phone || "NA"}</TableCell>
+                            <TableCell>{patient.lastVisit || "NA"}</TableCell>
+                            <TableCell>{patient.nextAppointment || "NA"}</TableCell>
+                            {/* Removed Actions cell */}
                           </TableRow>
                         ))
                       )}
@@ -735,52 +872,137 @@ const DoctorDashboard = () => {
                   <CardDescription>Manage your appointments</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    className="rounded-md border"
-                  />
+                  <div className="space-y-4">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      className="rounded-md border"
+                      components={{
+                        Day: ({ date }) => renderCalendarDay(date),
+                      }}
+                    />
+                    
+                    {/* Availability Legend */}
+                    <div className="flex flex-col gap-2 mt-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-green-100 border border-green-200"></div>
+                        <span>Available</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-yellow-100 border border-yellow-200"></div>
+                        <span>Waiting</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-red-100 border border-red-200"></div>
+                        <span>Not Available</span>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
                   <CardTitle>Upcoming Appointments</CardTitle>
-                  <CardDescription>Today's schedule</CardDescription>
+                  <CardDescription>
+                    Showing appointments for Dr. {profileData.name} (License: {profileData.licenseNumber})
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead>Date</TableHead>
                           <TableHead>Time</TableHead>
                           <TableHead>Patient</TableHead>
-                          <TableHead>Type</TableHead>
+                          <TableHead>Contact</TableHead>
+                          <TableHead>Reason</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {appointments.map((appointment) => (
-                          <TableRow key={appointment.id}>
-                            <TableCell>{appointment.time}</TableCell>
-                            <TableCell>{appointment.patientName}</TableCell>
-                            <TableCell>{appointment.type}</TableCell>
-                            <TableCell>
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                appointment.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                                appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <Button variant="outline" size="sm">Manage</Button>
+                        {isLoadingAppointments ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center py-4">
+                              <div className="flex justify-center">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                              </div>
                             </TableCell>
                           </TableRow>
-                        ))}
+                        ) : upcomingAppointments.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center py-4">
+                              No upcoming appointments
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          upcomingAppointments.map((appointment) => (
+                            <TableRow key={appointment._id}>
+                              <TableCell>{format(new Date(appointment.date), 'MMM dd, yyyy')}</TableCell>
+                              <TableCell>{appointment.time}</TableCell>
+                              <TableCell>{appointment.patientName}</TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  <div>{appointment.phone}</div>
+                                  <div className="text-gray-500">{appointment.email}</div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="max-w-[200px] truncate">
+                                  {appointment.reason}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <span className={cn(
+                                  "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                                  {
+                                    "bg-yellow-100 text-yellow-800": appointment.status === 'pending',
+                                    "bg-green-100 text-green-800": appointment.status === 'confirmed',
+                                    "bg-blue-100 text-blue-800": appointment.status === 'completed',
+                                    "bg-red-100 text-red-800": appointment.status === 'cancelled'
+                                  }
+                                )}>
+                                  {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {appointment.status === 'pending' && (
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => handleManageAppointment(appointment._id, 'confirm')}
+                                    >
+                                      Confirm
+                                    </Button>
+                                  )}
+                                  {appointment.status === 'confirmed' && (
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => handleManageAppointment(appointment._id, 'complete')}
+                                    >
+                                      Complete
+                                    </Button>
+                                  )}
+                                  {(appointment.status === 'pending' || appointment.status === 'confirmed') && (
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      onClick={() => handleManageAppointment(appointment._id, 'cancel')}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
                       </TableBody>
                     </Table>
                   </div>
@@ -976,13 +1198,7 @@ const DoctorDashboard = () => {
                               <p className="text-sm text-gray-500">Date: {report.date}</p>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewReport(report.patientId)}
-                              >
-                                View Full Report
-                              </Button>
+                              {/* Removed View Full Report button */}
                               <Button
                                 variant="ghost"
                                 size="sm"

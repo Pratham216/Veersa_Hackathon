@@ -62,6 +62,24 @@ const generateAvailability = () => {
   return availability;
 };
 
+// Function to randomly generate availability status for demonstration
+const getRandomAvailability = (date: Date) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const thirtyDaysFromNow = new Date(today);
+  thirtyDaysFromNow.setDate(today.getDate() + 30);
+  
+  // Only show colors for dates within next 30 days
+  if (date < today || date > thirtyDaysFromNow) {
+    return "disabled";
+  }
+
+  // Generate a random number between 0 and 2
+  const random = Math.floor(Math.random() * 3);
+  return random === 0 ? "available" : random === 1 ? "partial" : "booked";
+};
+
 const BookAppointment: React.FC<BookAppointmentProps> = ({
   rescheduleId,
   initialDoctor,
@@ -110,7 +128,9 @@ const BookAppointment: React.FC<BookAppointmentProps> = ({
   const fetchDoctors = async () => {
     try {
       const data = await doctorService.getAllDoctors();
-      setDoctors(data);
+      // Filter only users with usertype 'doctor'
+      const doctorsOnly = data.filter((doc: any) => doc.usertype === "doctor");
+      setDoctors(doctorsOnly);
     } catch (error) {
       console.error("Error fetching doctors:", error);
       toast({
@@ -468,13 +488,14 @@ const BookAppointment: React.FC<BookAppointmentProps> = ({
 
   // Custom calendar day render function
   const renderCalendarDay = (day: Date, props: any) => {
-    const formattedDate = format(day, "yyyy-MM-dd");
-    const availability = dateAvailability[formattedDate] || "disabled";
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const isPastDate = day < today;
     const isSunday = day.getDay() === 0;
     const isSelected = selectedDate ? format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') : false;
+    
+    // Get random availability for the date
+    const availability = getRandomAvailability(day);
 
     return (
       <button
@@ -500,18 +521,6 @@ const BookAppointment: React.FC<BookAppointmentProps> = ({
         )}
       >
         {format(day, 'd')}
-        <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1">
-          {availability !== 'disabled' && !isPastDate && !isSunday && (
-            <div
-              className={cn(
-                "h-1 w-1 rounded-full",
-                availability === 'available' && "bg-green-500",
-                availability === 'partial' && "bg-yellow-500",
-                availability === 'booked' && "bg-red-500"
-              )}
-            />
-          )}
-        </div>
       </button>
     );
   };
@@ -801,53 +810,28 @@ const BookAppointment: React.FC<BookAppointmentProps> = ({
                                         disabled: date < new Date() || date.getDay() === 0
                                       })
                                     }}
-                                    styles={{
-                                      months: { margin: '0.5rem' },
-                                      month: { width: '100%' },
-                                      caption: { marginBottom: '0.5rem' },
-                                      caption_label: { fontSize: '0.875rem', fontWeight: 500 },
-                                      nav: {
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        padding: '0.5rem',
-                                        backgroundColor: 'white'
-                                      },
-                                      nav_button: {
-                                        padding: '0.25rem',
-                                        cursor: 'pointer'
-                                      },
-                                      table: {
-                                        width: '100%',
-                                        borderCollapse: 'separate',
-                                        borderSpacing: '2px',
-                                        margin: '0.5rem 0'
-                                      },
-                                      head_cell: {
-                                        padding: '0.5rem 0',
-                                        textAlign: 'center',
-                                        fontWeight: 500,
-                                        fontSize: '0.875rem',
-                                        color: 'rgb(156, 163, 175)'
-                                      },
-                                      cell: {
-                                        padding: '0.25rem',
-                                        textAlign: 'center'
-                                      }
-                                    }}
+                                    className="rounded-md border"
                                   />
-                                  <div className="p-3 border-t border-gray-100 bg-white">
-                                    <div className="flex items-center justify-between text-xs text-gray-500">
-                                      <div className="flex items-center gap-1">
-                                        <div className="w-2 h-2 rounded-full bg-green-500" />
-                                        <span>All Available</span>
+                                  
+                                  {/* Availability Legend */}
+                                  <div className="p-3 border-t">
+                                    <p className="text-sm font-medium mb-2">Time Slots Availability</p>
+                                    <div className="flex flex-col gap-2 text-sm">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded-full bg-green-100 border border-green-200"></div>
+                                        <span>Available - Multiple slots open</span>
                                       </div>
-                                      <div className="flex items-center gap-1">
-                                        <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                                        <span>Partially Booked</span>
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded-full bg-yellow-100 border border-yellow-200"></div>
+                                        <span>Waiting - Limited slots left</span>
                                       </div>
-                                      <div className="flex items-center gap-1">
-                                        <div className="w-2 h-2 rounded-full bg-red-500" />
-                                        <span>Fully Booked</span>
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded-full bg-red-100 border border-red-200"></div>
+                                        <span>Not Available - No slots open</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded-full bg-gray-100 border border-gray-200"></div>
+                                        <span>Past dates or Sundays</span>
                                       </div>
                                     </div>
                                   </div>
@@ -981,4 +965,4 @@ const BookAppointment: React.FC<BookAppointmentProps> = ({
   );
 };
 
-export default BookAppointment; 
+export default BookAppointment;

@@ -12,7 +12,7 @@ import DeviceMonitoring from "./pages/DeviceMonitoring";
 import AIAssistant from "./pages/AIAssistant";
 import MedicalRecords from "./pages/MedicalRecords";
 import EmergencyServices from "./pages/EmergencyServices";
-import Profile from "./pages/Profile";
+import Setting from "./pages/Profile";
 import Auth from "./pages/Auth";
 import ManageAppointments from "./pages/ManageAppointments";
 import InstantCare from "./components/InstantCare";
@@ -26,6 +26,7 @@ import { Toaster as HotToaster } from 'react-hot-toast';
 import Emergency from "./components/Emergency";
 import { ProfileProvider } from "./contexts/ProfileContext";
 import DoctorDashboard from './pages/DoctorDashboard';
+import Doctors from "./pages/Doctors";
 // import PregnancyProgress from '@/components/PregnancyProgress';
 // import Emergency from '@/components/Emergency';
 
@@ -80,12 +81,13 @@ const App = () => (
             <Route path="/assistant" element={<PrivateRoute><AIAssistant /></PrivateRoute>} />
             <Route path="/medical-records" element={<PrivateRoute><MedicalRecords /></PrivateRoute>} />
             <Route path="/shecare" element={<PrivateRoute><SheCare /></PrivateRoute>} />
-            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><Setting /></PrivateRoute>} />
             <Route path="/instant-care" element={<PrivateRoute><InstantCare onStartConsultation={() => {}} /></PrivateRoute>} />
             <Route path="/health-dashboard" element={<PrivateRoute><ViewHealthDashboard /></PrivateRoute>} />
             <Route path="/symptom-checker" element={<PrivateRoute><SymptomChecker /></PrivateRoute>} />
             <Route path="/records" element={<Navigate to="/medical-records" replace />} />
             <Route path="/emergency" element={<PrivateRoute><Emergency /></PrivateRoute>} />
+            <Route path="/doctors" element={<Doctors />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

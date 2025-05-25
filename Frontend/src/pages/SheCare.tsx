@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { format, addDays } from "date-fns";
 import PregnancyProgress from "@/components/PregnancyProgress";
+import PeriodTracker from "@/components/PeriodTracker";
 
 const symptomsList = [
   "Irregular periods",
@@ -73,6 +74,15 @@ const SheCare: React.FC = () => {
         💗🌸 SheCare – Women's Health Tracker 🌸💗
       </h1>
 
+      {/* Period Tracker Section */}
+      <div className="mb-12">
+        <div className="bg-white rounded-lg shadow p-6 max-w-2xl mx-auto border border-pink-200">
+          <h2 className="text-2xl font-semibold text-pink-500 mb-4 text-center">
+            Period Tracking
+          </h2>
+          <PeriodTracker />
+        </div>
+      </div>
 
       {/* 🔍 PCOD Symptoms Chart */}
       <div className="w-full h-96 mb-16">

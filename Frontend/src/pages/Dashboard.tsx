@@ -13,7 +13,7 @@ const Dashboard = () => {
         <div className="p-6 border-b flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-semibold text-gray-900">Dashboard</h2>
-            <p className="text-sm text-gray-600 mt-1">Manage your profile and view health metrics</p>
+            <p className="text-sm text-gray-600 mt-1">Manage your profile </p>
           </div>
           <Link to="/instant-care">
             <Button className="bg-red-500 hover:bg-red-600 text-white">
@@ -76,11 +76,11 @@ const Dashboard = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="font-medium">Dr. Sarah Johnson</p>
-                    <p className="text-sm text-gray-500">Cardiology</p>
+                    <p className="text-sm text-gray-500">Neurologist</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium">Tomorrow</p>
-                    <p className="text-sm text-gray-500">10:00 AM</p>
+                    <p className="text-sm text-gray-500">11:00 AM</p>
                   </div>
                 </div>
               </div>

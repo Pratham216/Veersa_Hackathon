@@ -15,8 +15,8 @@ import {
   Polyline,
 } from "react-leaflet";
 import { LatLngTuple, Map as LeafletMap, PathOptions } from "leaflet";
-import 'leaflet/dist/leaflet.css';
-import { Icon } from 'leaflet';
+import "leaflet/dist/leaflet.css";
+import L from 'leaflet';
 const BACKEND_URL=import.meta.env.VITE_BACKEND_URL;
 
 // const GEOAPIFY_API_KEY = "ac185378194d4388acd495ad9941c0fc";
@@ -79,15 +79,11 @@ function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon
 }
 
 // Fix Leaflet default marker icon issue
-// Replace the existing L.Icon.Default setup with this
-const defaultIcon = new Icon({
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
 });
 
 const Emergency: React.FC = () => {
@@ -173,12 +169,7 @@ const Emergency: React.FC = () => {
           console.warn("Geolocation failed:", error.message);
           fetchLocationByIP();
         },
-        // Update these options in the useEffect hook
-        {
-          enableHighAccuracy: true,
-          maximumAge: 30000,  // Increase cache time to 30 seconds
-          timeout: 27000     // Increase timeout to 27 seconds
-        }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
       );
     } else {
       fetchLocationByIP();

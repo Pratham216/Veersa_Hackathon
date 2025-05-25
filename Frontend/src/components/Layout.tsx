@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Calendar, MessageSquare, FileText, AlertTriangle, User, Home, LogOut, Menu, ChevronLeft, Stethoscope, Baby, MapPin, HeartPulse, BarChart3, Hospital } from "lucide-react";
+import { Calendar, MessageSquare, FileText, AlertTriangle, User, Home, LogOut, Menu, ChevronLeft, Stethoscope, Baby, MapPin, HeartPulse, BarChart3, Hospital, Settings as SettingsIcon } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -49,7 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         }`}
       >
         <div className="p-4 border-b">
-          <h1 className="text-xl font-bold text-blue-700">Arogya-Vritti</h1>
+          <h1 className="text-xl font-bold text-blue-700">CureLink</h1>
         </div>
         <nav className="p-4 space-y-2">
           {navItems.map((item) => {
@@ -78,8 +78,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="absolute bottom-0 w-full p-4 border-t">
           <div className="flex items-center justify-between">
             <Link to="/profile" className="flex items-center space-x-2 text-gray-700">
-              <User size={20} />
-              <span>Profile</span>
+              <SettingsIcon size={20} />
+              <span>Setting</span>
             </Link>
             <Button 
               variant="ghost" 
@@ -109,4 +109,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 };
 
-export default Layout; 
+export default Layout;

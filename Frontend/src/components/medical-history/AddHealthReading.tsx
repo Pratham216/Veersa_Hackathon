@@ -102,7 +102,13 @@ const AddHealthReading: React.FC<AddHealthReadingProps> = ({ onReadingAdded }) =
         date: new Date(date).toISOString()
       };
 
+      // Log the request data
+      console.log('Sending health metric data:', requestData);
+
       const response = await api.post('/api/medical/health-metrics', requestData);
+
+      // Log the response
+      console.log('Server response:', response.data);
 
       if (response.data) {
         toast.success('Reading added successfully');
@@ -121,10 +127,7 @@ const AddHealthReading: React.FC<AddHealthReadingProps> = ({ onReadingAdded }) =
         setSelectedMetric('');
         setValue('');
         setDate(new Date().toISOString().split('T')[0]);
-        // Ensure onReadingAdded is called after successful submission
-        if (onReadingAdded) {
-          onReadingAdded();
-        }
+        onReadingAdded();
       } else {
         throw new Error('No data received from server');
       }
@@ -236,4 +239,4 @@ const AddHealthReading: React.FC<AddHealthReadingProps> = ({ onReadingAdded }) =
   );
 };
 
-export default AddHealthReading;
+export default AddHealthReading; 

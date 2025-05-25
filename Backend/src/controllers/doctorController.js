@@ -112,4 +112,15 @@ export const updateDoctorImage = async (req, res) => {
     console.error('Error updating doctor image:', error);
     res.status(500).json({ message: 'Error updating doctor image' });
   }
-}; 
+};
+
+// Component rendering doctors
+const DoctorList = ({ doctors }) => (
+  <div>
+    {doctors.map(doctor => (
+      <div key={doctor._id}>{doctor.name}</div>
+    ))}
+  </div>
+);
+
+export default DoctorList;

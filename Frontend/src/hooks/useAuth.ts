@@ -27,7 +27,7 @@ export function useAuth() {
           return;
         }
 
-        const response = await fetch('/api/auth/profile', {
+        const response = await fetch('/api/users/profile', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -87,4 +87,4 @@ export function useAuth() {
   };
 }
 
-export default useAuth; 
+export default useAuth;
