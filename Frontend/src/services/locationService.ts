@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:8080/api/geoapify';
+// ✅ Dynamically set backend base URL from Vite environment
+const BASE_URL = `${import.meta.env.VITE_BACKEND_URL}/api/geoapify`;
 
 export const getCurrentLocation = (): Promise<GeolocationPosition> => {
   return new Promise((resolve, reject) => {

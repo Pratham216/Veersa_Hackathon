@@ -1,13 +1,17 @@
 // src/services/api.ts
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:8080/api';
+const BASE_URL = import.meta.env.VITE_BACKEND_URL as string;
+
+if (!BASE_URL) {
+  throw new Error("VITE_BACKEND_URL is not defined in your environment variables.");
+}
 
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: `${BASE_URL}/api`,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 });
 
 // Add request interceptor to add auth token
