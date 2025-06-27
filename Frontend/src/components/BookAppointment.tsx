@@ -19,7 +19,7 @@ import doctorService, { Doctor } from "@/services/doctorService";
 import appointmentService, { Appointment } from "@/services/appointmentService";
 import { useAuth } from "@/contexts/AuthContext";
 
-const BACKEND_URL = 'http://localhost:8080';
+const BACKEND_URL = 'https://veersa-hackathon-1qjh.onrender.com';
 
 interface BookAppointmentProps {
   rescheduleId?: string | null;
