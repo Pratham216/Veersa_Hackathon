@@ -13,7 +13,7 @@ export const getCurrentLocation = (): Promise<GeolocationPosition> => {
     const options = {
       enableHighAccuracy: true,
       timeout: 10000,
-      maximumAge: 0,
+      maximumAge: 0
     };
 
     navigator.geolocation.getCurrentPosition(
