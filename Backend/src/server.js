@@ -25,7 +25,9 @@ const allowedOrigins = [
   'http://localhost:8083', // Adding your current frontend port
   'https://arogya-vritti-front-end.onrender.com',
   'https://arogya-vritti.life',
-  'https://www.arogya-vritti.life'
+  'https://www.arogya-vritti.life',
+  'https://veersa-hackathon.vercel.app', // ✅ Add this
+  'https://veersa-hackathon-1qjh.onrender.com',
 ];
 app.get("/", (req, res) => {
   res.send("Backend is live 🎉");
