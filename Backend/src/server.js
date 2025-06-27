@@ -27,6 +27,9 @@ const allowedOrigins = [
   'https://arogya-vritti.life',
   'https://www.arogya-vritti.life'
 ];
+app.get("/", (req, res) => {
+  res.send("Backend is live 🎉");
+});
 
 app.use(cors({
   origin: function (origin, callback) {
