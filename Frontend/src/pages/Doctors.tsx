@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Star } from "lucide-react"; // Add this import
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string;
 
 const Doctors = () => {
   const [doctors, setDoctors] = useState([]);
