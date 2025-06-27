@@ -35,6 +35,9 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200
 };
+app.get("/", (req, res) => {
+  res.send("Backend is live 🎉");
+});
 
 app.use(cors(corsOptions));
 
