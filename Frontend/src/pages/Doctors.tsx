@@ -1,20 +1,28 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Star } from "lucide-react"; // Add this import
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string;
+import { Star } from "lucide-react";
+import doctorService from "@/services/doctorService";
+import { toast } from "react-hot-toast";
+import type { Doctor } from "@/services/doctorService";
 
 const Doctors = () => {
-  const [doctors, setDoctors] = useState([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/api/doctors`)
-      .then(res => res.json())
-      .then(data => {
+    const fetchDoctors = async () => {
+      try {
+        const data = await doctorService.getAllDoctors();
         setDoctors(data);
         setLoading(false);
-      });
+      } catch (error) {
+        console.error('Error fetching doctors:', error);
+        toast.error('Failed to load doctors');
+        setLoading(false);
+      }
+    };
+
+    fetchDoctors();
   }, []);
 
   // Helper to render stars

@@ -128,9 +128,9 @@ const BookAppointment: React.FC<BookAppointmentProps> = ({
   const fetchDoctors = async () => {
     try {
       const data = await doctorService.getAllDoctors();
-      // Filter only users with usertype 'doctor'
-      const doctorsOnly = data.filter((doc: any) => doc.usertype === "doctor");
-      setDoctors(doctorsOnly);
+      // // Filter only users with usertype 'doctor'
+      // const doctorsOnly = data.filter((doc: any) => doc.usertype === "doctor");
+      setDoctors(data);
     } catch (error) {
       console.error("Error fetching doctors:", error);
       toast({
