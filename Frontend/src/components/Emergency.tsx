@@ -95,6 +95,8 @@ const Emergency: React.FC = () => {
   const [selectedHospitals, setSelectedHospitals] = useState<Hospital[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [showManualInput, setShowManualInput] = useState<boolean>(false);
+  const [manualLocation, setManualLocation] = useState<{ lat: string; lon: string }>({ lat: '', lon: '' });
 
   // Add polyline style
   const polylineOptions: PathOptions = {
@@ -134,48 +136,91 @@ const Emergency: React.FC = () => {
     }
   };
 
-  const fetchLocationByIP = async () => {
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/geoapify/ip-location`);
-      const data = await response.json();
-      if (data && data.location) {
-        const loc = { lat: data.location.latitude, lon: data.location.longitude };
-        setUsedIPFallback(true);
-        setLocation(loc);
-        fetchHospitals(loc.lat, loc.lon, "nearby");
-        reverseGeocode(loc.lat, loc.lon);
-      } else {
-        setError("Failed to retrieve location via IP.");
-        setLoading(false);
-      }
-    } catch {
-      setError("Error fetching location via IP.");
-      setLoading(false);
+const fetchLocationByIP = async () => {
+  try {
+    console.log('Attempting IP-based location detection...');
+    const response = await fetch(`${BACKEND_URL}/api/geoapify/ip-location`);
+    const data = await response.json();
+    if (data && data.location) {
+      const loc = { lat: data.location.latitude, lon: data.location.longitude };
+      console.log('IP-based location detected:', loc);
+      setUsedIPFallback(true);
+      setLocation(loc);
+      setError(null); // Clear any previous errors
+      fetchHospitals(loc.lat, loc.lon, "nearby");
+      reverseGeocode(loc.lat, loc.lon);
+    } else {
+      console.log('IP location failed, using default location (Delhi)');
+      // Use Delhi as default fallback
+      const defaultLocation = { lat: 28.6139, lon: 77.2090 };
+      setLocation(defaultLocation);
+      setUsedIPFallback(true);
+      setLocationName('Delhi (Default)');
+      setError('Using default location (Delhi). You can manually select a different city below.');
+      fetchHospitals(defaultLocation.lat, defaultLocation.lon, "nearby");
     }
-  };
+  } catch (error) {
+    console.log('IP location error, using default location (Delhi)');
+    // Use Delhi as default fallback
+    const defaultLocation = { lat: 28.6139, lon: 77.2090 };
+    setLocation(defaultLocation);
+    setUsedIPFallback(true);
+    setLocationName('Delhi (Default)');
+    setError('Using default location (Delhi). You can manually select a different city below.');
+    fetchHospitals(defaultLocation.lat, defaultLocation.lon, "nearby");
+  }
+};
 
   useEffect(() => {
-    let watchId: number;
+    let timeoutId: NodeJS.Timeout;
+    let gpsAttempted = false;
+    
+    // Start with Delhi as default immediately to show something
+    const defaultLocation = { lat: 28.6139, lon: 77.2090 };
+    setLocation(defaultLocation);
+    setLocationName('Delhi (Default)');
+    fetchHospitals(defaultLocation.lat, defaultLocation.lon, "nearby");
+    
+    // Try to get better location in parallel
     if (navigator.geolocation) {
-      watchId = navigator.geolocation.watchPosition(
+      gpsAttempted = true;
+      
+      // Set a quick timeout - if no location in 3 seconds, stick with default
+      timeoutId = setTimeout(() => {
+        console.log('Geolocation taking too long, keeping Delhi default');
+        // Don't try IP fallback, just keep Delhi default
+      }, 3000);
+      
+      navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           const loc = { lat: latitude, lon: longitude };
+          console.log('GPS location detected:', loc);
+          
+          // Clear timeout since we got location
+          clearTimeout(timeoutId);
+          
+          // Only update if we actually got GPS location (not IP)
           setLocation(loc);
+          setError(null);
+          setUsedIPFallback(false);
           fetchHospitals(loc.lat, loc.lon, "nearby");
           reverseGeocode(loc.lat, loc.lon);
         },
         (error) => {
           console.warn("Geolocation failed:", error.message);
-          fetchLocationByIP();
+          clearTimeout(timeoutId);
+          
+          // Don't use IP fallback - just keep Delhi default
+          console.log('Keeping Delhi as default location instead of IP fallback');
         },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+        { enableHighAccuracy: false, maximumAge: 300000, timeout: 3000 } // Fast, less accurate
       );
-    } else {
-      fetchLocationByIP();
     }
+    
+    // Cleanup function
     return () => {
-      if (watchId) navigator.geolocation.clearWatch(watchId);
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, []);
 
@@ -236,7 +281,69 @@ const Emergency: React.FC = () => {
       </div>
     )}
     {loading && <p>Loading hospitals...</p>}
-    {error && <p className="text-red-500">{error}</p>}
+    {error && (
+      <div className="text-red-500 p-3 bg-red-50 border border-red-200 rounded">
+        <p>{error}</p>
+        <button
+          onClick={() => setShowManualInput(true)}
+          className="mt-2 text-blue-600 hover:text-blue-800 underline"
+        >
+          Enter location manually
+        </button>
+      </div>
+    )}
+    
+    {showManualInput && (
+      <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded">
+        <h4 className="font-semibold mb-2">Enter coordinates manually:</h4>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            type="number"
+            placeholder="Latitude (e.g., 28.6139)"
+            value={manualLocation.lat}
+            onChange={(e) => setManualLocation({ ...manualLocation, lat: e.target.value })}
+            className="p-2 border border-gray-300 rounded"
+          />
+          <input
+            type="number"
+            placeholder="Longitude (e.g., 77.2090)"
+            value={manualLocation.lon}
+            onChange={(e) => setManualLocation({ ...manualLocation, lon: e.target.value })}
+            className="p-2 border border-gray-300 rounded"
+          />
+        </div>
+        <div className="mt-2 space-x-2">
+          <button
+            onClick={() => {
+              const lat = parseFloat(manualLocation.lat);
+              const lon = parseFloat(manualLocation.lon);
+              if (lat && lon && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+                setLocation({ lat, lon });
+                setLoading(true);
+                setError(null);
+                setShowManualInput(false);
+                fetchHospitals(lat, lon, "nearby");
+                reverseGeocode(lat, lon);
+              } else {
+                alert('Please enter valid coordinates (Latitude: -90 to 90, Longitude: -180 to 180)');
+              }
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Search Hospitals
+          </button>
+          <button
+            onClick={() => setShowManualInput(false)}
+            className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+          >
+            Cancel
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Tip: You can get your coordinates from Google Maps by right-clicking on your location.
+        </p>
+      </div>
+    )}
     {!loading && !error && nearbyHospitals.length > 0 && location && (
       <MapContainer 
         center={[location.lat, location.lon] as LatLngTuple}
