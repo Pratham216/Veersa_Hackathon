@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
+import userRoutes from './routes/userRoutes.js' // Importing users router
 // import paymentRoutes from './routes/payment.js';
 import medicalRoutes from './routes/medicalRoutes.js';
 import appointmentRoutes from './routes/appointmentRoutes.js';
@@ -10,6 +11,7 @@ import geoapifyRoutes from './routes/geoapifyRoutes.js';
 import doctorRoutes from './routes/doctorRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import healthMetricsRoutes from './routes/medical/healthMetrics.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -58,6 +60,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/arogya-vr
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
+app.use('/api/users', userRoutes); // Mounting users router
 app.use('/api/auth', authRoutes);
 // app.use('/api/payment', paymentRoutes);
 app.use('/api/medical', medicalRoutes);

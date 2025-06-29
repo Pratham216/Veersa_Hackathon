@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const { JWT_SECRET } = require('../crypto');
 
 module.exports = (req, res, next) => {
   try {
@@ -10,9 +11,9 @@ module.exports = (req, res, next) => {
       console.log('No token provided');
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
-
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    
+    // And replace it with:
+    const decoded = jwt.verify(token, JWT_SECRET);
     
     // Convert string ID to ObjectId if needed
     let userId;
@@ -31,11 +32,13 @@ module.exports = (req, res, next) => {
     // Add user data to request
     req.user = {
       id: userId,
+      userType: decoded.userType,
       email: decoded.email
     };
     
     console.log('Auth middleware - User authenticated:', {
       id: userId.toString(),
+      userType: decoded.userType,
       email: decoded.email
     });
     
@@ -50,4 +53,4 @@ module.exports = (req, res, next) => {
     }
     res.status(401).json({ message: 'Token is not valid', error: error.message });
   }
-}; 
+};

@@ -28,6 +28,34 @@ api.interceptors.request.use(
   }
 );
 
+// Add response interceptor to handle token expiration
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Token expired or invalid
+      const errorMessage = error.response.data?.message || '';
+      if (errorMessage.toLowerCase().includes('token') || errorMessage.toLowerCase().includes('expired')) {
+        console.log('Token expired, clearing localStorage and redirecting to login');
+        
+        // Clear all auth-related data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('userType');
+        
+        // Redirect to login page
+        window.location.href = '/auth';
+        
+        // Return a more user-friendly error
+        return Promise.reject(new Error('Your session has expired. Please log in again.'));
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Auth API
 export const authAPI = {
   login: (data: { email: string; password: string }) =>

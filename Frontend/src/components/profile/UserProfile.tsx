@@ -77,16 +77,32 @@ const UserProfile: React.FC = () => {
     fetchUserProfile();
   }, []);
 
+  
   const fetchUserProfile = async () => {
     try {
-      const response = await api.get('/api/auth/profile');
-      const userData = response.data;
-      updateProfile({
-        ...userData,
-        profilePhoto: userData.profilePhoto || DEFAULT_PROFILE_PHOTO
-      });
+      console.log('=== Loading profile from localStorage ===');
+      
+      // Get user data from localStorage (stored during login)
+      const storedUserData = localStorage.getItem('user');
+      
+      if (storedUserData) {
+        const userData = JSON.parse(storedUserData);
+        
+        updateProfile({
+          ...userData,
+          profilePhoto: userData.profilePhoto || DEFAULT_PROFILE_PHOTO
+        });
+      } else {
+        // Optionally redirect to login
+        // window.location.href = '/auth';
+      }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('❌ Error loading profile from localStorage:', error);
+      
+      // Clear corrupted data and redirect
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      window.location.href = '/auth';
     }
   };
 
@@ -148,48 +164,95 @@ const UserProfile: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
-      const formData = new FormData();
+      console.log('Starting profile update...');
       
-      // Add all profile data except photo
-      Object.entries(localProfileData).forEach(([key, value]) => {
-        if (key !== 'profilePhoto' && value) {
-          formData.append(key, value);
+      // Try to update on server first
+      let serverUpdateSuccessful = false;
+      
+      try {
+        const formData = new FormData();
+        
+        // Add all profile data except photo
+        Object.entries(localProfileData).forEach(([key, value]) => {
+          if (key !== 'profilePhoto' && value !== undefined && value !== null && value !== '') {
+            formData.append(key, value.toString());
+          }
+        });
+        
+        // Handle photo upload - only append file if it's a new file
+        if (photoFile) {
+          formData.append('profilePhoto', photoFile);
         }
-      });
-      
-      // Handle photo upload
-      if (photoFile) {
-        formData.append('profilePhoto', photoFile);
-      } else if (localProfileData.profilePhoto && localProfileData.profilePhoto !== DEFAULT_PROFILE_PHOTO) {
-        formData.append('profilePhoto', localProfileData.profilePhoto);
-      }
 
-      const response = await api.put('/api/auth/profile', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
+        const response = await api.put('/users/profile', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+
+        serverUpdateSuccessful = true;
+        
+        // Clean up any existing blob URL
+        if (localProfileData.profilePhoto && localProfileData.profilePhoto.startsWith('blob:')) {
+          URL.revokeObjectURL(localProfileData.profilePhoto);
         }
-      });
 
-      // Clean up any existing blob URL
-      if (localProfileData.profilePhoto && localProfileData.profilePhoto.startsWith('blob:')) {
-        URL.revokeObjectURL(localProfileData.profilePhoto);
+        // Update with server response
+        const updatedData = {
+          ...response.data,
+          profilePhoto: response.data.profilePhoto || DEFAULT_PROFILE_PHOTO
+        };
+        
+        setLocalProfileData(updatedData);
+        updateProfile(updatedData);
+        
+        // Also update localStorage
+        localStorage.setItem('user', JSON.stringify(updatedData));
+        
+      } catch (serverError) {
+        
+        // Server update failed, update locally instead
+        const updatedData = {
+          ...localProfileData
+        };
+        
+        // Handle photo file for local storage (convert to base64 if it's a new file)
+        if (photoFile) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            updatedData.profilePhoto = e.target?.result as string;
+            
+            // Update local state and storage
+            setLocalProfileData(updatedData);
+            updateProfile(updatedData);
+            localStorage.setItem('user', JSON.stringify(updatedData));
+            
+          };
+          reader.readAsDataURL(photoFile);
+        } else {
+          // No new photo, just update other data
+          setLocalProfileData(updatedData);
+          updateProfile(updatedData);
+          localStorage.setItem('user', JSON.stringify(updatedData));
+          
+        }
       }
-
-      // Update both local and context state with server response
-      const updatedData = {
-        ...response.data,
-        profilePhoto: response.data.profilePhoto || DEFAULT_PROFILE_PHOTO
-      };
       
-      setLocalProfileData(updatedData);
-      updateProfile(updatedData);
-      
-      // Reset the photo file state
+      // Reset form state
       setPhotoFile(null);
       setIsEditing(false);
 
+      if (serverUpdateSuccessful) {
+        // Notification logic to show success message on server update
+        // Example: showNotification('Profile updated successfully on server!');
+      } else {
+        // Notification logic to show success message on local update
+        // Example: showNotification('Profile updated locally!');
+      }
+
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('Unexpected error updating profile:', error);
+      alert('❌ Failed to update profile. Please try again.');
     }
   };
 
@@ -344,4 +407,4 @@ const UserProfile: React.FC = () => {
   );
 };
 
-export default UserProfile; 
+export default UserProfile;

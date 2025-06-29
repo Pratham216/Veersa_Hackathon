@@ -77,10 +77,14 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const updateProfile = (data: UserProfileData) => {
-    const normalizedData = normalizeProfileData(data);
-    setProfileData(normalizedData);
-    localStorage.setItem('user', JSON.stringify(normalizedData));
-    window.dispatchEvent(new CustomEvent('profileUpdated', { detail: normalizedData }));
+    try {
+      const normalizedData = normalizeProfileData(data);
+      setProfileData(normalizedData);
+      localStorage.setItem('user', JSON.stringify(normalizedData));
+      window.dispatchEvent(new CustomEvent('profileUpdated', { detail: normalizedData }));
+    } catch (error) {
+      console.error('Error updating profile context:', error);
+    }
   };
 
   return (

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h3>API Debug Test</h3>
+    <button onclick="testProfile()">Test Profile API</button>
+    <button onclick="testAuth()">Test Auth API</button>
+    <button onclick="clearStorage()">Clear Storage & Logout</button>
+    <pre id="output"></pre>
+
+    <script>
+        const BASE_URL = 'https://veersa-hackathon-1qjh.onrender.com/api';
+        
+        function log(message) {
+            const output = document.getElementById('output');
+            output.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            console.log(message);
+        }
+        
+        async function testProfile() {
+            log('=== Testing /users/profile ===');
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                log('❌ No token found');
+                return;
+            }
+            
+            log('✅ Token found: ' + token.substring(0, 20) + '...');
+            
+            try {
+                const response = await fetch(`${BASE_URL}/users/profile`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log('Response status: ' + response.status);
+                log('Response headers: ' + JSON.stringify(Object.fromEntries(response.headers.entries())));
+                
+                const data = await response.text(); // Get as text first
+                log('Response body: ' + data);
+                
+                try {
+                    const jsonData = JSON.parse(data);
+                    log('Parsed JSON: ' + JSON.stringify(jsonData, null, 2));
+                } catch (e) {
+                    log('Response is not valid JSON');
+                }
+                
+            } catch (error) {
+                log('❌ Network error: ' + error.message);
+            }
+        }
+        
+        async function testAuth() {
+            log('=== Testing /auth/profile ===');
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                log('❌ No token found');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BASE_URL}/auth/profile`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log('Auth Response status: ' + response.status);
+                const data = await response.text();
+                log('Auth Response body: ' + data);
+                
+            } catch (error) {
+                log('❌ Auth Network error: ' + error.message);
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            log('✅ Storage cleared. Please login again.');
+        }
+        
+        // Also decode the token
+        window.onload = function() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    log('Token payload: ' + JSON.stringify(payload, null, 2));
+                } catch (e) {
+                    log('Could not decode token');
+                }
+            } else {
+                log('No token found in localStorage');
+            }
+        }
+    </script>
+</body>
+</html>

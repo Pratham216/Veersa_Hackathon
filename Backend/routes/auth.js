@@ -44,6 +44,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Login
+// Find this section in the login route
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -61,9 +62,19 @@ router.post('/login', async (req, res) => {
     }
 
     // Create JWT token
+    // REPLACE THIS PART:
+    // const token = jwt.sign(
+    //   { userId: user._id, userType: user.userType },
+    //   process.env.JWT_SECRET || 'your-secret-key',
+    //   { expiresIn: '24h' }
+    // );
+    
+    // WITH YOUR NEW CODE:
+    const { JWT_SECRET } = require('../crypto');
+    
     const token = jwt.sign(
       { userId: user._id, userType: user.userType },
-      process.env.JWT_SECRET || 'your-secret-key',
+      JWT_SECRET,
       { expiresIn: '24h' }
     );
 
@@ -81,4 +92,38 @@ router.post('/login', async (req, res) => {
   }
 });
 
-module.exports = router; 
+// Get current user profile
+router.get('/profile', async (req, res) => {
+  try {
+    // Get token from header
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ message: 'No token, authorization denied' });
+    }
+    
+    // Verify token
+    const { JWT_SECRET } = require('../crypto');
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // Get user by ID from token
+    const user = await User.findById(decoded.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    res.json(user);
+  } catch (error) {
+    console.error('Auth profile error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expired' });
+    }
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+module.exports = router;

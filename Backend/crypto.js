@@ -1,3 +1,5 @@
-import crypto from 'crypto';
-const secretKey = crypto.randomBytes(32).toString('hex');
-console.log('JWT Secret Key:', secretKey);
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secure-fallback-key';
+
+module.exports = {
+  JWT_SECRET
+};

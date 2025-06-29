@@ -14,6 +14,7 @@ const medicalReportsRoutes = require('./routes/medical/reports');
 const geolocationRoutes = require('./routes/geolocation');
 const geolocationErrorHandler = require('./middleware/geolocationErrorHandler');
 
+
 dotenv.config();
 
 const app = express();
@@ -120,8 +121,8 @@ app.use((err, req, res, next) => {
 });
 
 // Mount routes
-app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/appointments', appointmentRoutes);

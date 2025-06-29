@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Token Decoder</title>
+</head>
+<body>
+    <h3>Token Decoder</h3>
+    <button onclick="decodeCurrentToken()">Decode Current Token</button>
+    <pre id="output"></pre>
+
+    <script>
+        function decodeCurrentToken() {
+            const token = localStorage.getItem('token');
+            const output = document.getElementById('output');
+            
+            if (!token) {
+                output.textContent = 'No token found in localStorage';
+                return;
+            }
+            
+            try {
+                // Decode JWT token
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                
+                const decoded = JSON.parse(jsonPayload);
+                
+                output.textContent = JSON.stringify(decoded, null, 2);
+                
+                console.log('Decoded token:', decoded);
+                console.log('User ID:', decoded.userId);
+                console.log('User Type:', decoded.userType);
+                console.log('Expires:', new Date(decoded.exp * 1000));
+                
+            } catch (error) {
+                output.textContent = 'Error decoding token: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
