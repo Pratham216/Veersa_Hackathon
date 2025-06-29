@@ -70,9 +70,12 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        // Clear any existing auth data first
+        // Check for existing profile data for this user email
+        const savedProfileKey = `profile_${formData.email}`;
+        const existingUserData = localStorage.getItem(savedProfileKey);
+        
+        // Clear auth data (but preserve user data for now)
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
         localStorage.removeItem('isAuthenticated');
         localStorage.removeItem('userType');
 
@@ -86,7 +89,9 @@ const Auth = () => {
         // Store auth data with complete user profile
         localStorage.setItem('token', token);
         localStorage.setItem('userType', user.userType || 'patient');
-        localStorage.setItem('user', JSON.stringify({
+        
+        // Use the preserved data if it exists
+        let mergedUserData = {
           ...user,
           profilePhoto: user.profilePhoto || DEFAULT_PROFILE_PHOTO,
           email: formData.email,
@@ -105,8 +110,44 @@ const Auth = () => {
           licenseNumber: user.licenseNumber || '',
           clinicAddress: user.clinicAddress || '',
           consultationFee: user.consultationFee || ''
-        }));
+        };
+        
+        // If there's existing user data, merge it to preserve local updates
+        if (existingUserData) {
+          try {
+            const parsedExistingData = JSON.parse(existingUserData);
+            // Only preserve profile data (not auth-related data)
+            mergedUserData = {
+              ...mergedUserData, // Server data as base
+              // Preserve local updates for profile fields
+              name: parsedExistingData.name || mergedUserData.name,
+              phone: parsedExistingData.phone || mergedUserData.phone,
+              address: parsedExistingData.address || mergedUserData.address,
+              dateOfBirth: parsedExistingData.dateOfBirth || mergedUserData.dateOfBirth,
+              gender: parsedExistingData.gender || mergedUserData.gender,
+              bloodGroup: parsedExistingData.bloodGroup || mergedUserData.bloodGroup,
+              emergencyContact: parsedExistingData.emergencyContact || mergedUserData.emergencyContact,
+              profilePhoto: parsedExistingData.profilePhoto || mergedUserData.profilePhoto,
+              // For doctors, also preserve specialty fields if they match
+              specialty: (user.userType === 'doctor' && parsedExistingData.specialty) ? parsedExistingData.specialty : mergedUserData.specialty,
+              qualification: (user.userType === 'doctor' && parsedExistingData.qualification) ? parsedExistingData.qualification : mergedUserData.qualification,
+              experience: (user.userType === 'doctor' && parsedExistingData.experience) ? parsedExistingData.experience : mergedUserData.experience,
+              licenseNumber: (user.userType === 'doctor' && parsedExistingData.licenseNumber) ? parsedExistingData.licenseNumber : mergedUserData.licenseNumber,
+              clinicAddress: (user.userType === 'doctor' && parsedExistingData.clinicAddress) ? parsedExistingData.clinicAddress : mergedUserData.clinicAddress,
+              consultationFee: (user.userType === 'doctor' && parsedExistingData.consultationFee) ? parsedExistingData.consultationFee : mergedUserData.consultationFee
+            };
+          } catch (error) {
+            console.log('Could not parse existing user data, using server data');
+          }
+        }
+        
+        localStorage.setItem('user', JSON.stringify(mergedUserData));
         localStorage.setItem('isAuthenticated', 'true');
+        
+        // Clean up the temporary saved profile data since it's now merged
+        if (existingUserData) {
+          localStorage.removeItem(savedProfileKey);
+        }
 
         // Dispatch profile update event
         window.dispatchEvent(new CustomEvent('profileUpdated', { 

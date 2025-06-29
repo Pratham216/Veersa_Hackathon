@@ -208,8 +208,11 @@ const UserProfile: React.FC = () => {
         
         // Also update localStorage
         localStorage.setItem('user', JSON.stringify(updatedData));
+        // Mark profile as synced with server
+        localStorage.removeItem('profileUnsaved');
         
       } catch (serverError) {
+        console.log('Server update failed, saving locally instead');
         
         // Server update failed, update locally instead
         const updatedData = {
@@ -222,10 +225,12 @@ const UserProfile: React.FC = () => {
           reader.onload = function(e) {
             updatedData.profilePhoto = e.target?.result as string;
             
-            // Update local state and storage
-            setLocalProfileData(updatedData);
-            updateProfile(updatedData);
-            localStorage.setItem('user', JSON.stringify(updatedData));
+          // Update local state and storage
+          setLocalProfileData(updatedData);
+          updateProfile(updatedData);
+          localStorage.setItem('user', JSON.stringify(updatedData));
+          // Mark profile as having unsaved changes
+          localStorage.setItem('profileUnsaved', 'true');
             
           };
           reader.readAsDataURL(photoFile);
@@ -234,6 +239,8 @@ const UserProfile: React.FC = () => {
           setLocalProfileData(updatedData);
           updateProfile(updatedData);
           localStorage.setItem('user', JSON.stringify(updatedData));
+          // Mark profile as having unsaved changes
+          localStorage.setItem('profileUnsaved', 'true');
           
         }
       }
@@ -243,11 +250,19 @@ const UserProfile: React.FC = () => {
       setIsEditing(false);
 
       if (serverUpdateSuccessful) {
-        // Notification logic to show success message on server update
-        // Example: showNotification('Profile updated successfully on server!');
+        // Show success message for server update
+        const successMsg = document.createElement('div');
+        successMsg.innerHTML = '✅ Profile updated successfully!';
+        successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 20px;border-radius:8px;z-index:1000;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.1)';
+        document.body.appendChild(successMsg);
+        setTimeout(() => document.body.removeChild(successMsg), 3000);
       } else {
-        // Notification logic to show success message on local update
-        // Example: showNotification('Profile updated locally!');
+        // Show success message for local update
+        const successMsg = document.createElement('div');
+        successMsg.innerHTML = '✅ Profile saved locally!';
+        successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:#3b82f6;color:white;padding:12px 20px;border-radius:8px;z-index:1000;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.1)';
+        document.body.appendChild(successMsg);
+        setTimeout(() => document.body.removeChild(successMsg), 3000);
       }
 
     } catch (error) {

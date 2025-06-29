@@ -85,6 +85,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               variant="ghost" 
               size="sm" 
               onClick={() => {
+                // Preserve profile changes before logout
+                const currentUser = localStorage.getItem('user');
+                const userEmail = currentUser ? JSON.parse(currentUser).email : null;
+                
+                if (userEmail && currentUser) {
+                  // Store profile changes with email as key
+                  localStorage.setItem(`profile_${userEmail}`, currentUser);
+                }
+                
+                // Clear auth data but preserve profile data
                 localStorage.removeItem('isAuthenticated');
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
