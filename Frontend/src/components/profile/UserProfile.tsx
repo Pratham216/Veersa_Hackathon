@@ -259,7 +259,7 @@ const UserProfile: React.FC = () => {
       } else {
         // Show success message for local update
         const successMsg = document.createElement('div');
-        successMsg.innerHTML = '✅ Profile saved locally!';
+        successMsg.innerHTML = '✅ Profile saved!';
         successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:#3b82f6;color:white;padding:12px 20px;border-radius:8px;z-index:1000;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.1)';
         document.body.appendChild(successMsg);
         setTimeout(() => document.body.removeChild(successMsg), 3000);
