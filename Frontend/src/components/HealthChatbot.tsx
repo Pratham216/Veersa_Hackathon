@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageSquare, Send, Loader2 } from "lucide-react";
+import api from "@/services/api"; // Adjust the import path as necessary
 
 interface Message {
   text: string;
@@ -33,18 +34,27 @@ const HealthChatbot: React.FC = () => {
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI response (replace with actual AI integration)
-    setTimeout(() => {
+    try {
+      // Call your backend AI endpoint
+      const res = await api.post("/ai/assistant", { question: input });
       const botResponse: Message = {
-        text: "I understand your concern. Let me help you with that. Would you like to:\n1. Schedule a consultation\n2. Get more information\n3. Connect with emergency services",
+        text: res.data.answer,
         isUser: false,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botResponse]);
-      setIsLoading(false);
-    }, 1000);
+    } catch (e) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: "Sorry, I couldn't process your request.",
+          isUser: false,
+          timestamp: new Date(),
+        },
+      ]);
+    }
+    setIsLoading(false);
   };
-
   return (
     <div className="flex flex-col h-[600px] bg-white rounded-lg shadow-lg">
       <div className="p-4 border-b flex items-center space-x-2">
@@ -59,11 +69,10 @@ const HealthChatbot: React.FC = () => {
             className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[80%] rounded-lg p-3 ${
-                message.isUser
+              className={`max-w-[80%] rounded-lg p-3 ${message.isUser
                   ? "bg-blue-600 text-white"
                   : "bg-gray-100 text-gray-900"
-              }`}
+                }`}
             >
               <p className="whitespace-pre-line">{message.text}</p>
               <span className="text-xs opacity-70 mt-1 block">

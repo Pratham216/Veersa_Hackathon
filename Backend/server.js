@@ -13,6 +13,7 @@ const medicalRecordsRoutes = require('./routes/medical/records');
 const medicalReportsRoutes = require('./routes/medical/reports');
 const geolocationRoutes = require('./routes/geolocation');
 const geolocationErrorHandler = require('./middleware/geolocationErrorHandler');
+const aiRoutes = require('./routes/ai'); // Import AI routes if needed
 
 
 dotenv.config();
@@ -126,11 +127,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/appointments', appointmentRoutes);
-app.use('/api/medical/health-metrics', healthMetricsRoutes);
 app.use('/api/medical/health-metric', healthMetricsRoutes); // Optional: support singular as well
+app.use('/api/medical/health-metrics', healthMetricsRoutes);
 app.use('/api/medical/records', medicalRecordsRoutes);
 app.use('/api/medical/reports', medicalReportsRoutes); // <-- FIXED: mount at /api/medical/reports
 app.use('/api/geoapify', geolocationRoutes);
+app.use('/api/ai', aiRoutes); // Mount AI routes if needed
 
 // Remove duplicate or unnecessary recordsRouter mounting if present
 

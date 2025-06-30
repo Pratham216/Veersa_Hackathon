@@ -65,7 +65,7 @@ app.use('/api/auth', authRoutes);
 // app.use('/api/payment', paymentRoutes);
 app.use('/api/medical', medicalRoutes);
 app.use('/api/geoapify', geoapifyRoutes);
-app.use('/api', aiRoutes);
+app.use('/api/ai', aiRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/medical/health-metrics', healthMetricsRoutes);
