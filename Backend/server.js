@@ -139,6 +139,7 @@ app.use('/api/ai', aiRoutes); // Mount AI routes if needed
 // Add error handler after routes
 app.use(geolocationErrorHandler);
 
+
 // 404 handler
 app.use((req, res) => {
   console.log(`404 - Not Found: ${req.method} ${req.url}`);

@@ -1,4 +1,3 @@
-console.log("=== ai.js loaded ===");
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
