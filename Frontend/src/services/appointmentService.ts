@@ -130,7 +130,7 @@ const appointmentService = {
 
   deleteAppointment: async (id: string) => {
     try {
-      const res = await api.delete(`/appointments/${id}`);
+      const res = await api.delete(`/api/appointments/${id}`);
       // Only try to access res.data if it exists
       if (res.data && res.data.success) {
         return res.data;

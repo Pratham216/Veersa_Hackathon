@@ -33,7 +33,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleJoinCall = (id: string) => {
-    const roomName = `ArogyaVrittiMeet_${id}`;
+    const roomName = `CureLink_${id}`;
     window.open(`https://meet.jit.si/${roomName}`, "_blank");
     onJoinCall(id);
   };
@@ -42,8 +42,8 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     try {
       setDeletingId(id);
       await appointmentService.deleteAppointment(id);
-      onDelete(id);
-      onUpdate();
+      // onDelete(id);   // Parent should remove the appointment from its state
+      onUpdate();     
       toast({
         title: "Success",
         description: "Appointment deleted successfully",
@@ -141,4 +141,4 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
   );
 };
 
-export default AppointmentList; 
+export default AppointmentList;

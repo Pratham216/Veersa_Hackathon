@@ -55,6 +55,7 @@ const Appointments = () => {
   const handleDelete = async (id: string) => {
     try {
       await appointmentService.deleteAppointment(id);
+      setAppointments(prev => prev.filter(appt => appt._id !== id));
       toast({
         title: "Success",
         description: "Appointment deleted successfully"
