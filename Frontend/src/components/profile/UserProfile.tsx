@@ -77,34 +77,53 @@ const UserProfile: React.FC = () => {
     fetchUserProfile();
   }, []);
 
-  
   const fetchUserProfile = async () => {
-    try {
-      console.log('=== Loading profile from localStorage ===');
-      
-      // Get user data from localStorage (stored during login)
-      const storedUserData = localStorage.getItem('user');
-      
-      if (storedUserData) {
-        const userData = JSON.parse(storedUserData);
-        
-        updateProfile({
-          ...userData,
-          profilePhoto: userData.profilePhoto || DEFAULT_PROFILE_PHOTO
-        });
-      } else {
-        // Optionally redirect to login
-        // window.location.href = '/auth';
-      }
-    } catch (error) {
-      console.error('❌ Error loading profile from localStorage:', error);
-      
-      // Clear corrupted data and redirect
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
-      window.location.href = '/auth';
+  try {
+    const response = await api.get('/users/profile');
+    const userData = response.data;
+
+    // PATCH: Ensure profilePhoto is a usable URL
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    const photoUrl = userData.profilePhoto
+      ? userData.profilePhoto.startsWith('http')
+        ? userData.profilePhoto
+        : `${backendUrl}/${userData.profilePhoto.replace(/^\/+/, '')}`
+      : DEFAULT_PROFILE_PHOTO;
+
+    updateProfile({
+      ...userData,
+      profilePhoto: photoUrl
+    });
+    setLocalProfileData({
+      ...localProfileData,
+      ...userData,
+      profilePhoto: photoUrl
+    });
+    // Optionally cache in localStorage
+    localStorage.setItem('user', JSON.stringify({ ...userData, profilePhoto: photoUrl }));
+  } catch (error) {
+    console.error('Error fetching profile from server:', error);
+    // Optionally fallback to localStorage if offline
+    const storedUserData = localStorage.getItem('user');
+    if (storedUserData) {
+      const userData = JSON.parse(storedUserData);
+      updateProfile({
+        ...userData,
+        profilePhoto: userData.profilePhoto || DEFAULT_PROFILE_PHOTO
+      });
+      setLocalProfileData({
+        ...localProfileData,
+        ...userData,
+        profilePhoto: userData.profilePhoto || DEFAULT_PROFILE_PHOTO
+      });
     }
-  };
+  }
+};
+
+  useEffect(() => {
+    fetchUserProfile();
+    // eslint-disable-next-line
+  }, []);
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -115,15 +134,15 @@ const UserProfile: React.FC = () => {
       }
 
       setPhotoFile(file);
-      
+
       // Create a temporary preview URL
       const previewUrl = URL.createObjectURL(file);
-      
+
       const updatedData = {
         ...localProfileData,
         profilePhoto: previewUrl
       };
-      
+
       setLocalProfileData(updatedData);
       updateProfile(updatedData);
     }
@@ -164,109 +183,64 @@ const UserProfile: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
-      console.log('Starting profile update...');
-      
-      // Try to update on server first
-      let serverUpdateSuccessful = false;
-      
-      try {
-        const formData = new FormData();
-        
-        // Add all profile data except photo
-        Object.entries(localProfileData).forEach(([key, value]) => {
-          if (key !== 'profilePhoto' && value !== undefined && value !== null && value !== '') {
-            formData.append(key, value.toString());
-          }
-        });
-        
-        // Handle photo upload - only append file if it's a new file
-        if (photoFile) {
-          formData.append('profilePhoto', photoFile);
-        }
+      const formData = new FormData();
 
-        const response = await api.put('/users/profile', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-
-        serverUpdateSuccessful = true;
-        
-        // Clean up any existing blob URL
-        if (localProfileData.profilePhoto && localProfileData.profilePhoto.startsWith('blob:')) {
-          URL.revokeObjectURL(localProfileData.profilePhoto);
+      // Add all profile data except photo
+      Object.entries(localProfileData).forEach(([key, value]) => {
+        if (key !== 'profilePhoto' && value !== undefined && value !== null && value !== '') {
+          formData.append(key, value.toString());
         }
+      });
 
-        // Update with server response
-        const updatedData = {
-          ...response.data,
-          profilePhoto: response.data.profilePhoto || DEFAULT_PROFILE_PHOTO
-        };
-        
-        setLocalProfileData(updatedData);
-        updateProfile(updatedData);
-        
-        // Also update localStorage
-        localStorage.setItem('user', JSON.stringify(updatedData));
-        // Mark profile as synced with server
-        localStorage.removeItem('profileUnsaved');
-        
-      } catch (serverError) {
-        console.log('Server update failed, saving locally instead');
-        
-        // Server update failed, update locally instead
-        const updatedData = {
-          ...localProfileData
-        };
-        
-        // Handle photo file for local storage (convert to base64 if it's a new file)
-        if (photoFile) {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            updatedData.profilePhoto = e.target?.result as string;
-            
-          // Update local state and storage
-          setLocalProfileData(updatedData);
-          updateProfile(updatedData);
-          localStorage.setItem('user', JSON.stringify(updatedData));
-          // Mark profile as having unsaved changes
-          localStorage.setItem('profileUnsaved', 'true');
-            
-          };
-          reader.readAsDataURL(photoFile);
-        } else {
-          // No new photo, just update other data
-          setLocalProfileData(updatedData);
-          updateProfile(updatedData);
-          localStorage.setItem('user', JSON.stringify(updatedData));
-          // Mark profile as having unsaved changes
-          localStorage.setItem('profileUnsaved', 'true');
-          
-        }
+      // Handle photo upload - only append file if it's a new file
+      if (photoFile) {
+        formData.append('profilePhoto', photoFile);
       }
-      
-      // Reset form state
+
+      // Try to update on server
+      const response = await api.put('/users/profile', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      // Clean up any existing blob URL
+      if (localProfileData.profilePhoto && localProfileData.profilePhoto.startsWith('blob:')) {
+        URL.revokeObjectURL(localProfileData.profilePhoto);
+      }
+
+      // Update with server response
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
+      const photoUrl = response.data.profilePhoto
+        ? response.data.profilePhoto.startsWith('http')
+          ? response.data.profilePhoto
+          : `${backendUrl}/${response.data.profilePhoto.replace(/^\/+/, '')}`
+        : DEFAULT_PROFILE_PHOTO;
+
+      const updatedData = {
+        ...response.data,
+        profilePhoto: photoUrl
+      };
+
+      setLocalProfileData(updatedData);
+      updateProfile(updatedData);
+
+      // Only update localStorage if server update was successful
+      localStorage.setItem('user', JSON.stringify(updatedData));
+      localStorage.removeItem('profileUnsaved');
+
       setPhotoFile(null);
       setIsEditing(false);
 
-      if (serverUpdateSuccessful) {
-        // Show success message for server update
-        const successMsg = document.createElement('div');
-        successMsg.innerHTML = '✅ Profile updated successfully!';
-        successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 20px;border-radius:8px;z-index:1000;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.1)';
-        document.body.appendChild(successMsg);
-        setTimeout(() => document.body.removeChild(successMsg), 3000);
-      } else {
-        // Show success message for local update
-        const successMsg = document.createElement('div');
-        successMsg.innerHTML = '✅ Profile saved!';
-        successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:#3b82f6;color:white;padding:12px 20px;border-radius:8px;z-index:1000;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.1)';
-        document.body.appendChild(successMsg);
-        setTimeout(() => document.body.removeChild(successMsg), 3000);
-      }
+      // Show success message
+      const successMsg = document.createElement('div');
+      successMsg.innerHTML = '✅ Profile updated successfully!';
+      successMsg.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 20px;border-radius:8px;z-index:1000;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.1)';
+      document.body.appendChild(successMsg);
+      setTimeout(() => document.body.removeChild(successMsg), 3000);
 
     } catch (error) {
-      console.error('Unexpected error updating profile:', error);
+      console.error('Failed to update profile:', error);
       alert('❌ Failed to update profile. Please try again.');
     }
   };
@@ -331,7 +305,7 @@ const UserProfile: React.FC = () => {
               <Input
                 id="name"
                 name="name"
-                value={localProfileData.name}
+                value={localProfileData.name || ""}
                 onChange={handleInputChange}
                 disabled={!isEditing}
               />
@@ -341,7 +315,7 @@ const UserProfile: React.FC = () => {
               <Input
                 id="phone"
                 name="phone"
-                value={localProfileData.phone}
+                value={localProfileData.phone || ""}
                 onChange={handleInputChange}
                 disabled={!isEditing}
               />
@@ -390,7 +364,7 @@ const UserProfile: React.FC = () => {
                 id="dateOfBirth"
                 name="dateOfBirth"
                 type="date"
-                value={localProfileData.dateOfBirth}
+                value={localProfileData.dateOfBirth || ""}
                 onChange={handleInputChange}
                 disabled={!isEditing}
               />
@@ -400,7 +374,7 @@ const UserProfile: React.FC = () => {
               <Input
                 id="emergencyContact"
                 name="emergencyContact"
-                value={localProfileData.emergencyContact}
+                value={localProfileData.emergencyContact || ""}
                 onChange={handleInputChange}
                 disabled={!isEditing}
               />
@@ -410,7 +384,7 @@ const UserProfile: React.FC = () => {
               <Input
                 id="address"
                 name="address"
-                value={localProfileData.address}
+                value={localProfileData.address || ""}
                 onChange={handleInputChange}
                 disabled={!isEditing}
               />
