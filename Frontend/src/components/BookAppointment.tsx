@@ -29,19 +29,33 @@ interface BookAppointmentProps {
 }
 
 const FIXED_TIME_SLOTS = [
-  "09:00", "09:30",
-  "10:00", "10:30",
-  "11:00", "11:30",
-  "12:00", "12:30",
-  "14:00", "14:30",
-  "15:00", "15:30",
-  "16:00", "16:30"
+  "10:00-10:30",
+  "11:00-11:30",
+  "12:00-12:30",
+  "13:00-13:30",
+  "15:00-15:30",
+  "16:00-16:30"
 ];
 
 const generateTimeSlots = () => {
   return FIXED_TIME_SLOTS;
 };
 
+function getDateStatus(
+  appointments: Appointment[],
+  doctorName: string,
+  date: Date
+) {
+  const dateStr = format(date, "yyyy-MM-dd");
+  const slotsTaken = appointments.filter(
+    (a) => a.date === dateStr && a.doctorName === doctorName
+  ).length;
+
+  if (slotsTaken === 0) return "green";
+  if (slotsTaken >= 3 && slotsTaken < 6) return "yellow";
+  if (slotsTaken >= 6) return "red";
+  return "green";
+}
 const generateAvailability = () => {
   const availability = [];
   const today = new Date();
@@ -62,24 +76,6 @@ const generateAvailability = () => {
   return availability;
 };
 
-// Function to randomly generate availability status for demonstration
-const getRandomAvailability = (date: Date) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const thirtyDaysFromNow = new Date(today);
-  thirtyDaysFromNow.setDate(today.getDate() + 30);
-  
-  // Only show colors for dates within next 30 days
-  if (date < today || date > thirtyDaysFromNow) {
-    return "disabled";
-  }
-
-  // Generate a random number between 0 and 2
-  const random = Math.floor(Math.random() * 3);
-  return random === 0 ? "available" : random === 1 ? "partial" : "booked";
-};
-
 const BookAppointment: React.FC<BookAppointmentProps> = ({
   rescheduleId,
   initialDoctor,
@@ -93,6 +89,7 @@ const BookAppointment: React.FC<BookAppointmentProps> = ({
   const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(initialDoctor || null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [doctorAppointments, setDoctorAppointments] = useState<Appointment[]>([]);
   const [activeTab, setActiveTab] = useState("find-doctor");
   const [formData, setFormData] = useState({
     patientName: "",
@@ -124,6 +121,21 @@ const BookAppointment: React.FC<BookAppointmentProps> = ({
       fetchAppointment(rescheduleId);
     }
   }, [rescheduleId]);
+
+  useEffect(() => {
+  const fetchDoctorAppointments = async () => {
+    if (!selectedDoctor) return;
+    try {
+      const allAppointments = await appointmentService.getUserAppointments();
+      setDoctorAppointments(
+        allAppointments.filter(a => a.doctorName === selectedDoctor.name)
+      );
+    } catch (error) {
+      setDoctorAppointments([]);
+    }
+  };
+  fetchDoctorAppointments();
+}, [selectedDoctor]);
 
   const fetchDoctors = async () => {
     try {
@@ -274,12 +286,12 @@ const BookAppointment: React.FC<BookAppointmentProps> = ({
       console.error("Error saving appointment:", error);
       const errorMessage = error.response?.data?.message || error.message || "Failed to save appointment. Please try again.";
       const validationErrors = error.response?.data?.errors;
-      
+
       if (validationErrors && Array.isArray(validationErrors)) {
-        const errorDetails = validationErrors.map((err: any) => 
+        const errorDetails = validationErrors.map((err: any) =>
           err.field ? `${err.field}: ${err.message}` : err.message || err
         ).join('\n');
-        
+
         toast({
           title: "Validation Error",
           description: errorDetails,
@@ -488,42 +500,42 @@ const BookAppointment: React.FC<BookAppointmentProps> = ({
 
   // Custom calendar day render function
   const renderCalendarDay = (day: Date, props: any) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const isPastDate = day < today;
-    const isSunday = day.getDay() === 0;
-    const isSelected = selectedDate ? format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') : false;
-    
-    // Get random availability for the date
-    const availability = getRandomAvailability(day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isPastDate = day < today;
+  const isSunday = day.getDay() === 0;
+  const isSelected = selectedDate ? format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd') : false;
 
-    return (
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          if (!isPastDate && !props.disabled && !isSunday) {
-            setSelectedDate(day);
-            setSelectedTime(undefined);
-            setCalendarOpen(false);
-          }
-        }}
-        disabled={isPastDate || props.disabled || isSunday}
-        className={cn(
-          "h-9 w-9 p-0 font-normal rounded-full flex items-center justify-center relative",
-          "transition-colors duration-200 ease-in-out",
-          "hover:bg-blue-50",
-          isSelected && "bg-blue-500 text-white hover:bg-blue-600",
-          !isSelected && !isPastDate && !isSunday && availability === 'available' && "bg-green-100 text-green-900 hover:bg-green-200",
-          !isSelected && !isPastDate && !isSunday && availability === 'partial' && "bg-yellow-100 text-yellow-900 hover:bg-yellow-200",
-          !isSelected && !isPastDate && !isSunday && availability === 'booked' && "bg-red-100 text-red-900 hover:bg-red-200",
-          (isPastDate || isSunday) && "bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100",
-          !isPastDate && !isSunday && !props.disabled && "cursor-pointer"
-        )}
-      >
-        {format(day, 'd')}
-      </button>
-    );
-  };
+  // Use real slot status
+  const status = selectedDoctor ? getDateStatus(doctorAppointments, selectedDoctor.name, day) : "green";
+
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        if (!isPastDate && !props.disabled && !isSunday && status !== "red") {
+          setSelectedDate(day);
+          setSelectedTime(undefined);
+          setCalendarOpen(false);
+        }
+      }}
+      disabled={isPastDate || props.disabled || isSunday || status === "red"}
+      className={cn(
+        "h-9 w-9 p-0 font-normal rounded-full flex items-center justify-center relative",
+        "transition-colors duration-200 ease-in-out",
+        "hover:bg-blue-50",
+        isSelected && "bg-blue-500 text-white hover:bg-blue-600",
+        !isSelected && !isPastDate && !isSunday && status === 'green' && "bg-green-100 text-green-900 hover:bg-green-200",
+        !isSelected && !isPastDate && !isSunday && status === 'yellow' && "bg-yellow-100 text-yellow-900 hover:bg-yellow-200",
+        !isSelected && !isPastDate && !isSunday && status === 'red' && "bg-red-600 text-red-900 hover:bg-red-600 cursor-not-allowed opacity-60",
+        (isPastDate || isSunday) && "bg-gray-100 text-gray-400 cursor-not-allowed hover:bg-gray-100",
+        !isPastDate && !isSunday && !props.disabled && "cursor-pointer"
+      )}
+    >
+      {format(day, 'd')}
+    </button>
+  );
+};
 
   // Clear form errors when fields are filled
   useEffect(() => {
@@ -812,7 +824,7 @@ const BookAppointment: React.FC<BookAppointmentProps> = ({
                                     }}
                                     className="rounded-md border"
                                   />
-                                  
+
                                   {/* Availability Legend */}
                                   <div className="p-3 border-t">
                                     <p className="text-sm font-medium mb-2">Time Slots Availability</p>

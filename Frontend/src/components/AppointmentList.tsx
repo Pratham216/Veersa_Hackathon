@@ -37,13 +37,22 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
     window.open(`https://meet.jit.si/${roomName}`, "_blank");
     onJoinCall(id);
   };
+  // Sort appointments by date and time
+  const sortedAppointments = [...appointments].sort((a, b) => {
+    if (a.date < b.date) return -1;
+    if (a.date > b.date) return 1;
+    if (a.time < b.time) return -1;
+    if (a.time > b.time) return 1;
+    return 0;
+  });
+
 
   const handleDelete = async (id: string) => {
     try {
       setDeletingId(id);
       await appointmentService.deleteAppointment(id);
       // onDelete(id);   // Parent should remove the appointment from its state
-      onUpdate();     
+      onUpdate();
       toast({
         title: "Success",
         description: "Appointment deleted successfully",
@@ -78,7 +87,7 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
                   <User className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-900">{appointment.patientName}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <Stethoscope className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-600">{appointment.specialization}</span>
@@ -96,11 +105,10 @@ const AppointmentList: React.FC<AppointmentListProps> = ({
               </div>
 
               <div className="flex flex-col items-end gap-4">
-                <span className={`px-3 py-1 rounded-full text-sm ${
-                  appointment.status.toLowerCase() === 'confirmed' 
-                    ? 'bg-green-50 text-green-700' 
+                <span className={`px-3 py-1 rounded-full text-sm ${appointment.status.toLowerCase() === 'confirmed'
+                    ? 'bg-green-50 text-green-700'
                     : 'bg-blue-50 text-blue-700'
-                }`}>
+                  }`}>
                   {appointment.status}
                 </span>
 

@@ -87,6 +87,7 @@ const Appointments = () => {
     // Determine if the appointment is upcoming
     const isUpcoming = appointmentDate >= today;
 
+
     return {
       _id: appointment._id,
       patientName: appointment.patientName,
@@ -104,8 +105,8 @@ const Appointments = () => {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-blue-700">Appointments</h1>
-          <Button 
-            className="bg-blue-600 hover:bg-blue-700 text-white" 
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 text-white"
             onClick={() => setShowBook(true)}
           >
             <Calendar className="mr-2 h-4 w-4" />
@@ -142,7 +143,13 @@ const Appointments = () => {
                 </div>
               ) : (
                 <AppointmentList
-                  appointments={mappedAppointments}
+                  appointments={[...mappedAppointments].sort((a, b) => {
+                    if (a.date < b.date) return -1;
+                    if (a.date > b.date) return 1;
+                    if (a.time < b.time) return -1;
+                    if (a.time > b.time) return 1;
+                    return 0;
+                  })}
                   onReschedule={handleReschedule}
                   onJoinCall={handleJoinCall}
                   onDelete={handleDelete}
