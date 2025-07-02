@@ -50,11 +50,11 @@ const appointmentService = {
   createAppointment: async (appointmentData: Omit<Appointment, '_id' | 'userId'>): Promise<Appointment> => {
     try {
       console.log('Creating appointment with data:', JSON.stringify(appointmentData, null, 2));
-      
+
       // Validate required fields before sending to server
       const requiredFields = ['doctorName', 'specialization', 'date', 'time', 'patientName', 'phone', 'email', 'reason'];
       const missingFields = requiredFields.filter(field => !appointmentData[field as keyof typeof appointmentData]);
-      
+
       if (missingFields.length > 0) {
         throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
       }
@@ -81,7 +81,7 @@ const appointmentService = {
       return response.data;
     } catch (error: any) {
       console.error('Error creating appointment:', error.response?.data || error);
-      
+
       // If it's a validation error from our frontend validation
       if (error.message) {
         throw {
@@ -93,7 +93,7 @@ const appointmentService = {
           }
         };
       }
-      
+
       throw error;
     }
   },
@@ -113,7 +113,7 @@ const appointmentService = {
   updatePaymentStatus: async (id: string, paymentData: { paymentMethod: string; transactionId: string; }): Promise<Appointment> => {
     try {
       console.log(`Updating payment status for appointment ${id} with data:`, paymentData);
-      
+
       // Validate payment data
       if (!paymentData.paymentMethod || !paymentData.transactionId) {
         throw new Error('Payment method and transaction ID are required');
@@ -128,13 +128,17 @@ const appointmentService = {
     }
   },
 
-  deleteAppointment: async (id: string): Promise<void> => {
+  deleteAppointment: async (id: string) => {
     try {
-      console.log(`Deleting appointment ${id}`);
-      await api.delete(`/api/appointments/${id}`);
-      console.log('Appointment deleted successfully');
-    } catch (error: any) {
-      console.error('Error deleting appointment:', error.response?.data || error.message);
+      const res = await api.delete(`/appointments/${id}`);
+      // Only try to access res.data if it exists
+      if (res.data && res.data.success) {
+        return res.data;
+      }
+      // If no data, still treat as success
+      return { success: true };
+    } catch (error) {
+      console.error("Error deleting appointment:", error);
       throw error;
     }
   }

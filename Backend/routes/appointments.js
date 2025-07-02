@@ -292,10 +292,10 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     console.log('Appointment deleted successfully');
-    res.json({ message: 'Appointment deleted successfully' });
+    res.json({success: true, message: 'Appointment deleted successfully' });
   } catch (error) {
     console.error('Error deleting appointment:', error);
-    res.status(500).json({ message: 'Error deleting appointment', error: error.message });
+    res.status(500).json({ success: false, message: 'Error deleting appointment', error: error.message });
   }
 });
 
